@@ -26,9 +26,19 @@ jobs:
       - name: Tarik data dari VPS (paralel)
         run: |
           echo "📥 Downloading..."
+          
           rclone copy vps:/var/www/html/mantap ./mantap \
-            --transfers 16 --checkers 16 \
-            --stats=30s --stats-one-line
+            --transfers 16 --checkers 16 -q &
+          RCLONE_PID=$!
+
+          while kill -0 $RCLONE_PID 2>/dev/null; do
+            SIZE=$(du -sh ./mantap 2>/dev/null | cut -f1)
+            COUNT=$(find ./mantap -type f 2>/dev/null | wc -l)
+            echo "⏳ Progress: ${COUNT} files, ${SIZE:-0}"
+            sleep 15
+          done
+
+          wait $RCLONE_PID
           echo "✅ Download selesai"
 
       - name: Install HuggingFace CLI
