@@ -7,33 +7,20 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install rclone
-        run: curl https://rclone.org/install.sh | sudo bash
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
 
-      - name: Setup rclone config (VPS + HF Bucket)
+      - name: Tarik data dari VPS
         run: |
-          OBSCURED_PASS=$(rclone obscure "${{ secrets.VPS_PASSWORD }}")
-          mkdir -p ~/.config/rclone
-          cat > ~/.config/rclone/rclone.conf << EOF
-          [vps]
-          type = sftp
-          host = ${{ secrets.VPS_HOST }}
-          user = ${{ secrets.VPS_USER }}
-          pass = $OBSCURED_PASS
-          port = 22
+          mkdir -p ./mantap
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" rsync -avz \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/html/mantap/ ./mantap/
 
-          [hf]
-          type = s3
-          provider = Other
-          endpoint = https://s3.hf.co/pelayanansejahtera
-          access_key_id = ${{ secrets.HF_S3_ACCESS_KEY }}
-          secret_access_key = ${{ secrets.HF_S3_SECRET_KEY }}
-          region = us-east-1
-          force_path_style = true
-          list_version = 2
-          upload_cutoff = 2G
-          chunk_size = 2G
-          EOF
+      - name: Install HuggingFace CLI
+        run: pip install -U huggingface_hub
 
-      - name: Sync folder VPS -> HuggingFace Bucket
-        run: rclone copy vps:/var/www/html/mantap hf:wan25/mantap --progress
+      - name: Sync ke HuggingFace Bucket
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: hf buckets sync ./mantap hf://buckets/pelayanansejahtera/wan25/mantap
