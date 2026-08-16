@@ -28,7 +28,7 @@ jobs:
           echo "📥 Downloading..."
           rclone copy vps:/var/www/html/mantap ./mantap \
             --transfers 16 --checkers 16 \
-            --stats=30s --stats-one-line -q
+            --stats=30s --stats-one-line
           echo "✅ Download selesai"
 
       - name: Install HuggingFace CLI
