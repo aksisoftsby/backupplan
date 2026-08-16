@@ -1,0 +1,39 @@
+name: Backup VPS ke HuggingFace Bucket
+
+on:
+  workflow_dispatch:   # tombol klik manual
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rclone
+        run: curl https://rclone.org/install.sh | sudo bash
+
+      - name: Setup rclone config (VPS + HF Bucket)
+        run: |
+          OBSCURED_PASS=$(rclone obscure "${{ secrets.VPS_PASSWORD }}")
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [vps]
+          type = sftp
+          host = ${{ secrets.VPS_HOST }}
+          user = ${{ secrets.VPS_USER }}
+          pass = $OBSCURED_PASS
+          port = 22
+
+          [hf]
+          type = s3
+          provider = Other
+          endpoint = https://s3.hf.co/pelayanansejahtera
+          access_key_id = ${{ secrets.HF_S3_ACCESS_KEY }}
+          secret_access_key = ${{ secrets.HF_S3_SECRET_KEY }}
+          region = us-east-1
+          force_path_style = true
+          list_version = 2
+          upload_cutoff = 2G
+          chunk_size = 2G
+          EOF
+
+      - name: Sync folder VPS -> HuggingFace Bucket
+        run: rclone copy vps:/var/www/html/mantap hf:wan25/mantap --progress
