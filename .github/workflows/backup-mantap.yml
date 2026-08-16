@@ -28,7 +28,11 @@ jobs:
           echo "📥 Downloading..."
           
           rclone copy vps:/var/www/html/mantap ./mantap \
-            --transfers 16 --checkers 16 -q &
+            --transfers 4 --checkers 4 \
+            --sftp-set-modtime=false \
+            --contimeout 30s --timeout 300s \
+            --retries 5 --low-level-retries 20 \
+            -q &
           RCLONE_PID=$!
 
           while kill -0 $RCLONE_PID 2>/dev/null; do
