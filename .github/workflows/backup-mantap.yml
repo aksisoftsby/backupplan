@@ -1,21 +1,32 @@
 name: Backup VPS ke HuggingFace Bucket
 
 on:
-  workflow_dispatch:   # tombol klik manual
+  workflow_dispatch:
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
+      - name: Install rclone
+        run: curl https://rclone.org/install.sh | sudo bash
 
-      - name: Tarik data dari VPS
+      - name: Setup rclone config (SFTP ke VPS)
         run: |
-          mkdir -p ./mantap
-          sshpass -p "${{ secrets.VPS_PASSWORD }}" rsync -avz \
-            -e "ssh -o StrictHostKeyChecking=no" \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/html/mantap/ ./mantap/
+          OBSCURED_PASS=$(rclone obscure "${{ secrets.VPS_PASSWORD }}")
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [vps]
+          type = sftp
+          host = ${{ secrets.VPS_HOST }}
+          user = ${{ secrets.VPS_USER }}
+          pass = $OBSCURED_PASS
+          port = 22
+          EOF
+
+      - name: Tarik data dari VPS (paralel)
+        run: |
+          rclone copy vps:/var/www/html/mantap ./mantap \
+            --transfers 16 --checkers 16 --progress
 
       - name: Install HuggingFace CLI
         run: pip install -U huggingface_hub
