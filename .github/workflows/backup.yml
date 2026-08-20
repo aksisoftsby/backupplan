@@ -1,0 +1,19 @@
+name: Backup VPS ke HuggingFace Bucket
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rclone
+        run: curl https://rclone.org/install.sh | sudo bash
+
+      - name: Install depedencies
+        run: |
+            apt update
+            apt install -y rclone
+            apt install -y mysql-client
+            apt install -y default-mysql-client
+            apt install -y sshpass
