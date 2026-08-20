@@ -12,7 +12,4 @@ jobs:
 
       - name: Install depedencies
         run: |
-            apt-get install -y rclone
-            apt-get install -y mysql-client
-            apt-get install -y default-mysql-client
-            apt-get install -y sshpass
+            pip install modal
